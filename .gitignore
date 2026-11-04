@@ -6,3 +6,4 @@ build/
 !.env.example
 *.log
 *.tsbuildinfo
+supabase/.temp/

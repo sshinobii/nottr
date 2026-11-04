@@ -1,15 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const EXPLORER = 'https://robinhoodchain.blockscout.com';
+type Tx = { id: string; hash: string; timestamp: string | null; from?: string; to?: string; method: string; status: string };
+
+async function blockscout(address: string) {
+  const response = await fetch(`${EXPLORER}/api/v2/addresses/${address}/transactions`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Explorer unavailable');
+  const data = await response.json();
+  if (!Array.isArray(data.items)) throw new Error('Unexpected explorer response');
+  const transactions: Tx[] = data.items.map((tx: any) => ({ id: tx.hash, hash: tx.hash, timestamp: tx.timestamp, from: tx.from?.hash, to: tx.to?.hash, method: tx.method || 'Transfer', status: tx.status }));
+  return { transactions, hasMore: !!data.next_page_params, coverage: 'Latest transaction page. Token transfers and internal transactions are excluded.', provider: 'Blockscout' };
+}
+
+async function alchemy(address: string, key: string) {
+  const url = `https://robinhood-mainnet.g.alchemy.com/v2/${encodeURIComponent(key)}`;
+  async function request(method: string, params: unknown[]) {
+    const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error('Provider unavailable');
+    const body = await response.json();
+    if (body.error || body.result == null) throw new Error('Provider request failed');
+    return body.result;
+  }
+  const chainId = await request('eth_chainId', []);
+  if (chainId !== '0x1237') throw new Error('Wrong chain');
+  const filters = { fromBlock: '0x0', toBlock: 'latest', category: ['external', 'erc20'], withMetadata: true, excludeZeroValue: false, maxCount: '0x32', order: 'desc' };
+  const [incoming, outgoing] = await Promise.all([
+    request('alchemy_getAssetTransfers', [{ ...filters, toAddress: address }]),
+    request('alchemy_getAssetTransfers', [{ ...filters, fromAddress: address }]),
+  ]);
+  if (!Array.isArray(incoming.transfers) || !Array.isArray(outgoing.transfers)) throw new Error('Unexpected provider response');
+  const unique = new Map<string, Tx>();
+  for (const transfer of [...incoming.transfers, ...outgoing.transfers]) {
+    if (typeof transfer.hash !== 'string' || typeof transfer.uniqueId !== 'string') throw new Error('Unexpected transfer');
+    unique.set(transfer.uniqueId, { id: transfer.uniqueId, hash: transfer.hash, timestamp: transfer.metadata?.blockTimestamp || null, from: transfer.from || undefined, to: transfer.to || undefined, method: transfer.category === 'erc20' ? 'Token transfer' : 'Native transfer', status: 'observed' });
+  }
+  const transactions = [...unique.values()].sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+  return { transactions, hasMore: !!incoming.pageKey || !!outgoing.pageKey, coverage: 'Up to 50 incoming and 50 outgoing native and ERC-20 transfers; contract calls and internal transfers are excluded.', provider: 'Alchemy' };
+}
+
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get('address') || '';
-  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) return NextResponse.json({error:'Enter a valid EVM address.'},{status:400});
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) return NextResponse.json({ error: 'Enter a valid EVM address.' }, { status: 400 });
   try {
-    const response = await fetch(`${EXPLORER}/api/v2/addresses/${address}/transactions`, {cache:'no-store', signal:AbortSignal.timeout(12000)});
-    if (!response.ok) throw new Error('Explorer unavailable');
-    const data = await response.json();
-    if (!Array.isArray(data.items)) throw new Error('Unexpected explorer response');
-    const transactions = data.items.map((tx:any) => ({hash:tx.hash, timestamp:tx.timestamp, from:tx.from?.hash, to:tx.to?.hash, method:tx.method || 'Transfer', status:tx.status}));
-    return NextResponse.json({address, transactions, hasMore:!!data.next_page_params, scannedAt:new Date().toISOString(), source:EXPLORER});
-  } catch { return NextResponse.json({error:'Robinhood Chain data is currently unavailable. Please try again.'},{status:502}); }
+    const key = process.env.ALCHEMY_API_KEY;
+    const result = key ? await alchemy(address, key) : await blockscout(address);
+    return NextResponse.json({ address, ...result, scannedAt: new Date().toISOString(), source: EXPLORER });
+  } catch { return NextResponse.json({ error: 'Robinhood Chain data is currently unavailable. Please try again.' }, { status: 502 }); }
 }

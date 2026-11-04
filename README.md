@@ -1,29 +1,60 @@
-# NOTTR
+<p align="center">
+  <img src="docs/nottr-banner.png" alt="NOTTR — Your wallet is public. Know what it reveals." width="100%" />
+</p>
 
-Wallet privacy intelligence for Robinhood Chain. This is an incomplete product under development; do not treat it as production-ready.
+<p align="center">
+  <strong>Wallet Privacy Intelligence for Robinhood Chain</strong><br />
+  Understand the onchain footprint your wallet leaves behind.
+</p>
 
-## Local development
+<p align="center">
+  <a href="https://nottr.xyz">Visit NOTTR</a> ·
+  <a href="https://nottr.xyz/dashboard">Launch app</a> ·
+  <a href="https://robinhoodchain.blockscout.com/address/0xd4531a83a8b29d54aab30428f99de889e9e0fc54">$NOTTR contract</a>
+</p>
 
-Use Node.js 20.9 or newer. Run `npm install`, copy `.env.example` to `.env.local`, fill in the values described below, and run `npm run dev`. Open the local URL printed by Next.js. `npm run build` checks the production build and `npm test` runs the relationship analysis tests.
+## About
 
-## Manual Supabase setup
+Blockchain activity is public. NOTTR helps people explore the connections and patterns visible around an address on Robinhood Chain, with evidence and clear descriptions of the data available.
 
-1. Create a new Supabase project for NOTTR in your chosen organization and region.
-2. In SQL Editor, run the complete SQL from each file in `supabase/migrations/`, in filename order, once each. They create server-only tables for history, future product features and AI request limits. These migrations are intended for a new empty project and have not been applied or tested on a live database.
-3. Copy the Project URL and a server secret key from the project's Connect / API Keys settings into `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. The secret key bypasses RLS and must remain server-side; never prefix it with `NEXT_PUBLIC_`, commit it or share it in chat.
-4. Create a Privy application, enable Email and Wallet login, and add your local and deployment domains to its allowed domains. Copy the app ID to `NEXT_PUBLIC_PRIVY_APP_ID` and its verification public key to `PRIVY_VERIFICATION_KEY`. For one-line environment values use literal `\n` between PEM lines. The server validates token signature, issuer, audience and expiry with Privy's SDK before any database access.
-5. Create an Alchemy app for Robinhood Chain mainnet and set its API key as the server-only `ALCHEMY_API_KEY`. Without this key the server uses the public Blockscout endpoint, which may block automated requests. The Alchemy path requires a provider account and has not yet been validated with a real API key.
-6. Create an OpenAI API key and add it as the server-only `OPENAI_API_KEY`. Optionally set `OPENAI_MODEL` to `gpt-6.1-terra` (default) or `gpt-6-luna`; the selected model must be enabled for your OpenAI project. AI uses the Responses API with storage disabled. A signed-in user can make at most five AI requests per hour; the database limit must be configured or the endpoint remains unavailable. The AI request refreshes the chain data and sends the wallet address, question, derived signals, evidence, score and coverage to OpenAI after the user presses Ask NOTTR.
-7. On Vercel, add the same variables in Project Settings → Environment Variables for the appropriate environments and redeploy. Do not commit `.env.local` or share secret keys in chat.
+Enter an EVM address to start a public scan. A wallet connection is optional for public scans; sign in with email or a wallet to access account features.
 
-Once configured, Privy handles email and wallet login. Successful scans performed while signed in save the searched address and timestamp to the account's history. The server uses the verified Privy user ID to scope every database operation; the table is not exposed to browser roles. The latest 20 history entries can be selected for a fresh scan; the Account screen can export up to 10,000 history records as JSON or clear all history. Scan results themselves are not saved. Public scanning does not require sign-in. An email login alone does not prove control of any wallet.
+## Features
 
-## Current scope and limitations
+- **Wallet scans** — explore recent activity using Robinhood Chain data.
+- **Privacy Score** — an experimental, rule-based estimate with an explanation of its factors and the limits of the available sample.
+- **Exposure map** — visualize direct counterparties and follow links to the underlying transactions.
+- **Privacy signals** — identify repeated direct interactions and review their evidence.
+- **NOTTR Analyst** — ask an AI assistant to explain a fresh scan and suggest practical next steps.
+- **Personal workspace** — sign in through Privy, revisit scan history, and export or clear saved history.
 
-The public scanner validates EVM addresses and queries only Robinhood Chain. The Alchemy adapter checks chain ID 4663 and requests up to 50 incoming and 50 outgoing native and ERC-20 transfers; contract calls and internal transfers are excluded. If Alchemy is unavailable, the scanner attempts Blockscout and identifies the fallback in its coverage message. The Blockscout adapter requests one page of transactions and excludes token and internal transfers. Coverage is partial and results link to the explorer. The graph shows up to eight direct relationships summarized from returned records, not evidence of common ownership.
+The Privacy Score describes the activity observed within the scan's scope. It is not a guarantee of anonymity or security. AI responses are interpretations and may contain errors; check conclusions against the linked evidence. A connection between addresses does not prove common ownership.
 
-Privacy Score v1 is an experimental, deterministic connectivity heuristic applied to the returned sample. It starts at 100 and deducts up to 30 points for distinct counterparties, 30 for repeated counterparties, and 20 for the largest counterparty's transaction concentration. It requires at least five distinct transactions involving other addresses. It has not been calibrated or independently validated and must not be interpreted as an anonymity or security guarantee. The method version, factor contributions and coverage appear with the scan; no score is produced when evidence is insufficient.
+## Network
 
-The optional AI analyst generates an interpretation of a fresh scan, with no tools or ability to change the score. The response is an interpretation, not evidence. It requires sign-in, OpenAI and a database quota; it has not been tested with live credentials. Full pagination, saved verified wallets, private reports, payment verification, subscriptions, monitoring, token entitlements, email alerts, admin tools, public scan rate limiting, full account export and security review are not implemented. The product database migration only prepares tables; no payments, purchases, monitoring or token benefits are enabled. There are no buyback or burn executors. External service connectivity, Privy sign-in and database access controls have not been tested against configured services. Do not deploy as a production service until the remaining features and controls are implemented and independently tested.
+NOTTR currently focuses on **Robinhood Chain Mainnet** (chain ID `4663`). Scans use Alchemy when configured and can fall back to Blockscout. Coverage is partial: the application displays the source and scope of each scan.
 
-NOTTR does not make wallets anonymous or guarantee privacy. It does not aggregate other networks.
+**$NOTTR contract:** [`0xd4531a83a8b29d54aab30428f99de889e9e0fc54`](https://robinhoodchain.blockscout.com/address/0xd4531a83a8b29d54aab30428f99de889e9e0fc54)
+
+## Development
+
+Built with Next.js, React, TypeScript, Supabase, Privy, Alchemy and OpenAI.
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Configure the variables in `.env.local` for your environment, then open [localhost:3000](http://localhost:3000). Run the SQL migrations in `supabase/migrations` in filename order when setting up a new Supabase project. Enable email and wallet login in Privy and configure its allowed domains.
+
+```bash
+npm test       # Run automated tests
+npm run build  # Build the application
+```
+
+Keep server credentials out of source control and client-side code. The AI analyst requires an OpenAI API key and sends scan data and the user's question to OpenAI when requested.
+
+## Project status
+
+NOTTR is under active development. Paid reports, subscriptions, monitoring, token holder benefits and automated buyback or burn operations are not currently available. The product does not hide transactions or make a wallet anonymous.

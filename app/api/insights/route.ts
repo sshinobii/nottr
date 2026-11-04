@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { verifyAccessToken } from '@privy-io/node';
+import { verifyPrivyToken } from '../../../lib/privy-auth';
 import { createClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,15 +11,14 @@ const instructions = `You are NOTTR's analyst: a calm, observant voice in a dark
 export async function POST(request: NextRequest) {
   const key = process.env.OPENAI_API_KEY;
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-  const verificationKey = process.env.PRIVY_VERIFICATION_KEY?.replace(/\\n/g, '\n');
   const dbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const dbKey = process.env.SUPABASE_SECRET_KEY;
-  if (!key || !appId || !verificationKey || !dbUrl || !dbKey) return NextResponse.json({ error: 'AI analysis is not configured.' }, { status: 503 });
+  if (!key || !appId || !dbUrl || !dbKey) return NextResponse.json({ error: 'AI analysis is not configured.' }, { status: 503 });
   const token = request.headers.get('authorization')?.match(/^Bearer (\S+)$/)?.[1];
   if (!token) return NextResponse.json({ error: 'Sign in to use AI analysis.' }, { status: 401 });
   let userId: string;
   try {
-    const claims = await verifyAccessToken({ access_token: token, app_id: appId, verification_key: verificationKey });
+    const claims = await verifyPrivyToken(token);
     if (!claims.user_id.startsWith('did:privy:')) throw new Error();
     userId = claims.user_id;
   } catch { return NextResponse.json({ error: 'Your session expired. Please sign in again.' }, { status: 401 }); }

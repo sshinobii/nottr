@@ -52,7 +52,15 @@ When a user submits a question, the server performs a fresh scan and sends the a
 
 ### Personal workspace
 
-Privy provides email and wallet sign-in. Signed-in users can review their recent scan history, reuse an address, export history and clear it. Signing in by email alone does not verify ownership of a wallet.
+Privy provides email and wallet sign-in. Signed-in users can review their recent scan history, reuse an address, export history and clear it. They can save two public addresses without connecting a wallet. A Privy-linked wallet holding at least 1,000,000 $NOTTR on Robinhood Chain unlocks up to ten saved addresses. Saving an address does not verify ownership.
+
+### Monitoring and alerts
+
+When configured, a scheduled job scans eligible saved addresses and records observed direct counterparties. It establishes a baseline on the first check, then reports newly observed connections as privacy signals. A newly observed connection may be old activity that was previously outside the returned sample; it does not itself indicate a threat. A separate backfill walks the explorer's transaction, token-transfer and internal-transaction pages and resumes from a checkpoint. The workspace shows progress and provider failures. Coverage still depends on the explorer and does not include offchain connections or a complete approval inventory.
+
+The risk alert infrastructure compares recorded counterparties against a source-backed operator-maintained registry. **No automated threat-intelligence feed is included and this registry starts empty.** Until operators configure and maintain reliable Robinhood Chain indicators, the application cannot identify known scams or send related risk alerts. A match is a reason to inspect the cited evidence, not proof that a wallet is compromised.
+
+Alerts and evidence appear in the account, with a recent-alert count on the workspace overview. Telegram delivery is planned for a later update. The scheduled worker has a finite execution window; deployments need monitoring and sufficient scheduler capacity to meet daily coverage as usage grows. See [monitoring setup](docs/monitoring-setup.md).
 
 ## $NOTTR token
 
@@ -63,7 +71,7 @@ Privy provides email and wallet sign-in. Signed-in users can review their recent
 | **Chain ID** | `4663` |
 | **Contract** | [`0xd4531a83a8b29d54aab30428f99de889e9e0fc54`](https://robinhoodchain.blockscout.com/address/0xd4531a83a8b29d54aab30428f99de889e9e0fc54) |
 
-The token is part of the NOTTR ecosystem. Holder benefits are planned and are not yet available in the application.
+The token is part of the NOTTR ecosystem. The optional saved-wallet allowance requires server-side holder verification and a connected, Privy-linked wallet. The application does not transfer or custody tokens.
 
 ## Technology
 
@@ -92,11 +100,11 @@ The scanner validates the requested address, fetches provider data on the server
 - Broader historical coverage and more evidence-backed signals.
 - Further testing and refinement of the Privacy Score and AI analysis.
 - Verified-wallet features and extended reports.
-- Monitoring and alerts for users who choose to enable them.
-- Token holder benefits and transparent token-related reporting.
+- Automated threat-intelligence feeds and broader historical coverage.
+- Additional token holder benefits and transparent token-related reporting.
 - Continued security, reliability and usability improvements.
 
-These items are planned. Paid reports, subscriptions, monitoring, holder benefits and automated buyback or burn operations are not currently available.
+These items are planned. Paid reports, subscriptions and automated buyback or burn operations are not currently available. Monitoring and the saved-wallet holder tier require deployment configuration, migrations and verification before use.
 
 ## Local development
 

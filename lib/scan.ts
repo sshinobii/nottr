@@ -50,3 +50,18 @@ export async function scanAddress(address: string) {
     } else result = await blockscout(address);
     return { address, ...result, score: privacyScore(address, result.transactions), scannedAt: new Date().toISOString(), source: EXPLORER };
 }
+
+// Monitoring adds the explorer's recent contract-call transactions to the
+// transfer sample. Neither source provides complete historical coverage here.
+export async function scanForMonitoring(address: string) {
+  const scan = await scanAddress(address);
+  if (scan.provider === 'Blockscout') return scan;
+  try {
+    const calls = await blockscout(address);
+    const seen = new Set(scan.transactions.map(tx => `${tx.hash}:${tx.from?.toLowerCase()}:${tx.to?.toLowerCase()}`));
+    const extra = calls.transactions.filter(tx => !seen.has(`${tx.hash}:${tx.from?.toLowerCase()}:${tx.to?.toLowerCase()}`));
+    return { ...scan, transactions: [...scan.transactions, ...extra], hasMore: scan.hasMore || calls.hasMore, provider: `${scan.provider} + Blockscout`, coverage: `${scan.coverage} Also includes the latest Blockscout transaction page (including direct contract calls). Internal transfers and older history may be missing.` };
+  } catch {
+    return { ...scan, coverage: `${scan.coverage} Blockscout contract-call coverage was unavailable.` };
+  }
+}

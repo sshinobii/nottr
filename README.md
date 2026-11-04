@@ -1,44 +1,106 @@
 <p align="center">
-  <img src="docs/nottr-banner.png" alt="NOTTR — Your wallet is public. Know what it reveals." width="100%" />
+  <img src="docs/nottr-banner.png" alt="NOTTR - Your wallet is public. Know what it reveals." width="100%" />
 </p>
 
 <p align="center">
   <strong>Wallet Privacy Intelligence for Robinhood Chain</strong><br />
-  Understand the onchain footprint your wallet leaves behind.
+  See what the chain reveals. Understand your exposure. Take control of what comes next.
 </p>
 
 <p align="center">
-  <a href="https://nottr.xyz">Visit NOTTR</a> ·
+  <a href="https://nottr.xyz">Website</a> ·
   <a href="https://nottr.xyz/dashboard">Launch app</a> ·
   <a href="https://robinhoodchain.blockscout.com/address/0xd4531a83a8b29d54aab30428f99de889e9e0fc54">$NOTTR contract</a>
 </p>
 
-## About
+## What is NOTTR?
 
-Blockchain activity is public. NOTTR helps people explore the connections and patterns visible around an address on Robinhood Chain, with evidence and clear descriptions of the data available.
+Blockchain activity is public. Transfers and interactions can reveal patterns and connections that are easy to overlook. NOTTR is a wallet privacy intelligence platform that makes those onchain signals easier to explore and understand.
 
-Enter an EVM address to start a public scan. A wallet connection is optional for public scans; sign in with email or a wallet to access account features.
+Enter an EVM address to scan its activity on Robinhood Chain. NOTTR organizes the returned records into an explainable Privacy Score, direct connections and evidence-based findings. The optional AI analyst can help interpret the results and suggest practical next steps.
 
-## Features
+Public scans do not require a wallet connection. Users can sign in with email or a wallet to access their workspace.
 
-- **Wallet scans** — explore recent activity using Robinhood Chain data.
-- **Privacy Score** — an experimental, rule-based estimate with an explanation of its factors and the limits of the available sample.
-- **Exposure map** — visualize direct counterparties and follow links to the underlying transactions.
-- **Privacy signals** — identify repeated direct interactions and review their evidence.
-- **NOTTR Analyst** — ask an AI assistant to explain a fresh scan and suggest practical next steps.
-- **Personal workspace** — sign in through Privy, revisit scan history, and export or clear saved history.
+## How it works
 
-The Privacy Score describes the activity observed within the scan's scope. It is not a guarantee of anonymity or security. AI responses are interpretations and may contain errors; check conclusions against the linked evidence. A connection between addresses does not prove common ownership.
+1. **Scan an address.** Enter a valid `0x...` address. NOTTR requests activity from Robinhood Chain.
+2. **Explore the evidence.** Review returned records, direct counterparties and transaction links.
+3. **Understand the score.** Inspect the factors used to calculate the experimental Privacy Score and the coverage of the scan.
+4. **Ask NOTTR Analyst.** Signed-in users can request an additional AI interpretation of a fresh scan.
 
-## Network
+## What's available
 
-NOTTR currently focuses on **Robinhood Chain Mainnet** (chain ID `4663`). Scans use Alchemy when configured and can fall back to Blockscout. Coverage is partial: the application displays the source and scope of each scan.
+### Wallet scans
 
-**$NOTTR contract:** [`0xd4531a83a8b29d54aab30428f99de889e9e0fc54`](https://robinhoodchain.blockscout.com/address/0xd4531a83a8b29d54aab30428f99de889e9e0fc54)
+NOTTR retrieves public activity on Robinhood Chain Mainnet. Alchemy provides native and ERC-20 transfer records when configured. Blockscout provides a fallback for recent transactions. Each result identifies its source, scan time and coverage limits.
 
-## Development
+### Privacy Score
 
-Built with Next.js, React, TypeScript, Supabase, Privy, Alchemy and OpenAI.
+The score is a deterministic estimate based on observable connectivity in the returned sample. It begins at 100 and deducts points for distinct counterparties, repeated counterparties and concentration of interactions. The interface shows the methodology version and individual factor contributions.
+
+The score requires at least five distinct transactions involving counterparties. It is experimental and has not been independently validated. A higher score represents fewer exposure signals under these rules within the scanned sample; missing data is not treated as evidence of safety.
+
+### Exposure map and signals
+
+The exposure map displays up to eight direct counterparties found in the scan. Findings highlight repeated interactions with supporting transaction links. These relationships describe observed activity; they do not establish that addresses have the same owner.
+
+### NOTTR Analyst
+
+NOTTR Analyst is an optional AI layer for understanding a scan. It can explain observed signals, discuss their limits and suggest practical privacy considerations in a concise, clear voice.
+
+When a user submits a question, the server performs a fresh scan and sends the address, derived findings, score, coverage and question to OpenAI. AI output is an interpretation, can be incorrect and does not change the rule-based Privacy Score. Source transactions remain the evidence for a finding.
+
+### Personal workspace
+
+Privy provides email and wallet sign-in. Signed-in users can review their recent scan history, reuse an address, export history and clear it. Signing in by email alone does not verify ownership of a wallet.
+
+## $NOTTR token
+
+| | |
+| --- | --- |
+| **Token** | `$NOTTR` |
+| **Network** | Robinhood Chain Mainnet |
+| **Chain ID** | `4663` |
+| **Contract** | [`0xd4531a83a8b29d54aab30428f99de889e9e0fc54`](https://robinhoodchain.blockscout.com/address/0xd4531a83a8b29d54aab30428f99de889e9e0fc54) |
+
+The token is part of the NOTTR ecosystem. Holder benefits are planned and are not yet available in the application.
+
+## Technology
+
+| Layer | Technology | Role |
+| --- | --- | --- |
+| Application | Next.js, React, TypeScript | Website, workspace and server routes |
+| Chain data | Alchemy, Blockscout | Robinhood Chain activity and explorer links |
+| Authentication | Privy | Email and wallet sign-in |
+| Database | Supabase PostgreSQL | Account scan history and application data |
+| AI | OpenAI API, Vercel AI SDK | Optional explanations of scan findings |
+| Deployment | Vercel | Application hosting |
+
+The scanner validates the requested address, fetches provider data on the server, calculates the score using versioned rules and returns the result with its coverage. The AI endpoint performs a separate fresh scan before producing an explanation. The browser does not receive the server's service keys.
+
+**Network scope:** Robinhood Chain Mainnet only, chain ID `4663`. NOTTR does not aggregate activity from other networks.
+
+## Coverage and limitations
+
+- The Alchemy scan requests up to 50 incoming and 50 outgoing native and ERC-20 transfer records. Contract calls and internal transfers are excluded.
+- The Blockscout fallback returns one page of transactions and does not include token or internal transfers.
+- Results represent the records returned by the source, not necessarily a complete wallet history.
+- NOTTR does not identify real-world people, hide transactions or guarantee privacy or anonymity.
+
+## What's next
+
+- Broader historical coverage and more evidence-backed signals.
+- Further testing and refinement of the Privacy Score and AI analysis.
+- Verified-wallet features and extended reports.
+- Monitoring and alerts for users who choose to enable them.
+- Token holder benefits and transparent token-related reporting.
+- Continued security, reliability and usability improvements.
+
+These items are planned. Paid reports, subscriptions, monitoring, holder benefits and automated buyback or burn operations are not currently available.
+
+## Local development
+
+**Requirements:** Node.js 20.9 or newer, npm and configured service credentials.
 
 ```bash
 npm install
@@ -46,15 +108,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Configure the variables in `.env.local` for your environment, then open [localhost:3000](http://localhost:3000). Run the SQL migrations in `supabase/migrations` in filename order when setting up a new Supabase project. Enable email and wallet login in Privy and configure its allowed domains.
+Open [localhost:3000](http://localhost:3000). On Windows PowerShell, use `Copy-Item .env.example .env.local` instead of `cp` if preferred.
+
+Set up a Supabase project and run the SQL files in `supabase/migrations` in filename order. Configure a Privy app with email and wallet login, an Alchemy app for Robinhood Chain Mainnet and an OpenAI API key for the analyst. Add the values shown in `.env.example` to `.env.local` or your deployment environment.
 
 ```bash
 npm test       # Run automated tests
 npm run build  # Build the application
 ```
 
-Keep server credentials out of source control and client-side code. The AI analyst requires an OpenAI API key and sends scan data and the user's question to OpenAI when requested.
-
-## Project status
-
-NOTTR is under active development. Paid reports, subscriptions, monitoring, token holder benefits and automated buyback or burn operations are not currently available. The product does not hide transactions or make a wallet anonymous.
+Keep secret keys on the server and out of source control. See the environment template for the variables expected by this version.

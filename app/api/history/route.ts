@@ -20,6 +20,19 @@ async function context(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const ctx = await context(request);
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+  if (request.nextUrl.searchParams.get('export') === '1') {
+    const items: { id: number; address: string; created_at: string }[] = [];
+    let lastId = 0;
+    for (;;) {
+      const { data, error } = await ctx.db.from('scan_history').select('id,address,created_at').eq('user_id', ctx.userId).gt('id', lastId).order('id', { ascending: true }).limit(500);
+      if (error || !data) return NextResponse.json({ error: 'History export is unavailable.' }, { status: 503 });
+      items.push(...data);
+      if (items.length > 10000) return NextResponse.json({ error: 'History is too large to export at once.' }, { status: 413 });
+      if (data.length < 500) break;
+      lastId = data[data.length - 1].id;
+    }
+    return NextResponse.json({ exportedAt: new Date().toISOString(), history: items }, { headers: { 'Cache-Control': 'no-store' } });
+  }
   const { data, error } = await ctx.db.from('scan_history').select('id,address,created_at').eq('user_id', ctx.userId).order('created_at', { ascending: false }).limit(20);
   if (error) return NextResponse.json({ error: 'History is unavailable.' }, { status: 503 });
   return NextResponse.json({ items: data }, { headers: { 'Cache-Control': 'no-store' } });

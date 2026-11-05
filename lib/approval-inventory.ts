@@ -6,6 +6,15 @@ type Database = ReturnType<typeof serviceDatabase>;
 type Job = { id: string; address: string; approval_next_block: number; approval_window: number; approval_error_at: string | null };
 type LogResponse = { status: string; message: string; result: unknown };
 
+async function indexedHead(): Promise<number> {
+  const response = await fetch('https://robinhoodchain.blockscout.com/api/v2/blocks', { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+  if (!response.ok) throw new Error('Approval explorer head unavailable');
+  const body = await response.json();
+  const height = body?.items?.[0]?.height;
+  if (!Number.isSafeInteger(height) || height < 0) throw new Error('Invalid approval explorer head');
+  return height;
+}
+
 async function explorerLogs(owner: string, from: number, to: number): Promise<unknown[]> {
   const url = new URL('https://robinhoodchain.blockscout.com/api');
   url.search = new URLSearchParams({
@@ -62,8 +71,8 @@ export async function advanceApprovalInventory(db: Database, job: Job) {
     return;
   }
   if (BigInt(await approvalRpc('eth_chainId', [])) !== 4663n) throw new Error('Wrong approval chain');
-  const latest = BigInt(await approvalRpc('eth_blockNumber', []));
-  const head = Number(latest > 20n ? latest - 20n : 0n);
+  const [latest, explorerHead] = await Promise.all([approvalRpc('eth_blockNumber', []), indexedHead()]);
+  const head = Math.max(0, Math.min(Number(BigInt(latest)), explorerHead) - 5000);
   if (!Number.isSafeInteger(head)) throw new Error('Invalid approval chain head');
   const nextBlock = Number(job.approval_next_block);
   const window = Number(job.approval_window);

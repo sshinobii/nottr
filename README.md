@@ -62,6 +62,8 @@ The risk alert infrastructure compares recorded counterparties against a source-
 
 Alerts and evidence appear in the account, with a recent-alert count on the workspace overview. Telegram delivery is planned for a later update. The scheduled worker has a finite execution window; deployments need monitoring and sufficient scheduler capacity to meet daily coverage as usage grows. See [monitoring setup](docs/monitoring-setup.md).
 
+The account also builds an ERC-20 permission inventory for saved wallets. It walks Robinhood Chain Approval logs from the beginning in checkpointed ranges, records token/spender pairs, and reads each pair's current `allowance` onchain. The workspace distinguishes active, unlimited, revoked and unavailable checks and shows backfill progress. This can take multiple worker runs for busy wallets. It does not cover offchain permits, NFT approvals or contracts that do not emit standard ERC-20 Approval events.
+
 ## $NOTTR token
 
 | | |
@@ -97,7 +99,7 @@ The scanner validates the requested address, fetches provider data on the server
 
 ## What's next
 
-- Broader historical coverage and more evidence-backed signals.
+- Broader historical coverage beyond standard ERC-20 approvals and more evidence-backed signals.
 - Further testing and refinement of the Privacy Score and AI analysis.
 - Verified-wallet features and extended reports.
 - Automated threat-intelligence feeds and broader historical coverage.

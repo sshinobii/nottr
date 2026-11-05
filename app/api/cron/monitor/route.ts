@@ -7,6 +7,7 @@ import { holderLimit } from '../../../../lib/holder';
 import { recentApprovals } from '../../../../lib/approvals';
 import { transactionHistoryPage } from '../../../../lib/history-scan.mjs';
 import { advanceApprovalInventory } from '../../../../lib/approval-inventory';
+import { advanceNftApprovalInventory } from '../../../../lib/nft-approval-inventory';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -23,12 +24,12 @@ export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const db = serviceDatabase();
   const deadline = Date.now() + 220_000;
-  let checked = 0, failed = 0, approvalFailed = 0, suspended = 0;
+  let checked = 0, failed = 0, approvalFailed = 0, nftApprovalFailed = 0, suspended = 0;
   while (Date.now() < deadline) {
     const { data: jobs, error } = await db.rpc('claim_wallet_checks', { batch_size: 5 });
     if (error) { console.error('Monitor claim failed', error.message); return NextResponse.json({ error: 'Could not claim jobs.', checked, failed }, { status: 503 }); }
     if (!jobs?.length) break;
-    await Promise.all(jobs.map(async (job: { id: string; address: string; slot: number; user_id: string; last_checked_at: string | null; history_cursor: Record<string, unknown> | null; history_completed_at: string | null; approval_next_block: number; approval_window: number; approval_error_at: string | null }) => {
+    await Promise.all(jobs.map(async (job: { id: string; address: string; slot: number; user_id: string; last_checked_at: string | null; history_cursor: Record<string, unknown> | null; history_completed_at: string | null; approval_next_block: number; approval_window: number; approval_error_at: string | null; nft_approval_next_block?: number; nft_approval_window?: number; nft_approval_error_at?: string | null }) => {
       try {
         if (job.slot > 2) {
           const lower = await db.from('saved_wallets').select('id', { count: 'exact', head: true }).eq('user_id', job.user_id).lt('slot', job.slot);
@@ -73,6 +74,15 @@ export async function GET(request: NextRequest) {
             await db.from('saved_wallets').update({ approval_error_at: new Date().toISOString(), next_check_at: new Date(Date.now() + 3600_000).toISOString(), lease_until: null }).eq('id', job.id);
           }
         }
+        if (job.nft_approval_next_block !== undefined && job.nft_approval_window !== undefined) {
+          try {
+            await advanceNftApprovalInventory(db, { ...job, nft_approval_next_block: job.nft_approval_next_block, nft_approval_window: job.nft_approval_window, nft_approval_error_at: job.nft_approval_error_at ?? null });
+          } catch (cause) {
+            nftApprovalFailed++;
+            console.error('NFT approval inventory failed', cause instanceof Error ? cause.message : 'provider or database error');
+            await db.from('saved_wallets').update({ nft_approval_error_at: new Date().toISOString(), next_check_at: new Date(Date.now() + 3600_000).toISOString(), lease_until: null }).eq('id', job.id);
+          }
+        }
         checked++;
       } catch (error) {
         failed++; console.error('Wallet check failed', error instanceof Error ? error.message : 'database or provider error');
@@ -80,5 +90,5 @@ export async function GET(request: NextRequest) {
       }
     }));
   }
-  return NextResponse.json({ checked, failed, approvalFailed, suspended, timeLimitReached: Date.now() >= deadline }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ checked, failed, approvalFailed, nftApprovalFailed, suspended, timeLimitReached: Date.now() >= deadline }, { headers: { 'Cache-Control': 'no-store' } });
 }

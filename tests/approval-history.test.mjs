@@ -25,6 +25,13 @@ test('historical approval parsing rejects other owners and malformed records', (
   assert.throws(() => approvalEvents(owner, [log(21, 1, '1')], 0, 20));
 });
 
+test('ERC-721 token approval does not interrupt ERC-20 discovery', () => {
+  const nft = { ...log(12, 1, '1'), topics: [...log(12, 1, '1').topics.slice(0, 3), `0x${'0'.repeat(63)}1`], data: '0x' };
+  assert.deepEqual(approvalEvents(owner, [nft, log(12, 2, '2')], 0, 20), [
+    { token, spender, transaction: `0x${'2'.repeat(64)}`, block: 12 },
+  ]);
+});
+
 test('approval ranges advance and narrow when the explorer result is saturated', () => {
   assert.deepEqual(approvalRange(100, 50, 120), { from: 100, to: 120 });
   assert.equal(nextApprovalWindow(21, 1000), 10);

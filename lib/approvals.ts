@@ -26,7 +26,7 @@ export function isUnlimitedAllowance(amount: bigint) { return amount === MAX; }
 // This is a bounded discovery window, not a complete allowance inventory.
 export async function recentApprovals(owner: string): Promise<{ status: 'ok' | 'partial' | 'unavailable'; items: Approval[]; coverage: string }> {
   const key = process.env.ALCHEMY_API_KEY;
-  const coverage = 'Direct ERC-20 Approval events from the latest 1,000 blocks only; older approvals, permits, NFTs and contract-mediated approvals may be missing.';
+  const coverage = 'ERC-20 Approval events from the latest 1,000 blocks only, including used ERC-2612 permits; older approvals, unsubmitted signatures, Permit2, NFTs and custom contract permissions may be missing.';
   if (!key) return { status: 'unavailable', items: [], coverage };
   try {
     if (BigInt(await approvalRpc('eth_chainId', [])) !== 4663n) throw new Error('Incorrect chain');

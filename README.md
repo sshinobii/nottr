@@ -62,7 +62,7 @@ The risk alert infrastructure compares recorded counterparties against a source-
 
 Alerts and evidence appear in the account, with a recent-alert count on the workspace overview. Telegram delivery is planned for a later update. The scheduled worker has a finite execution window; deployments need monitoring and sufficient scheduler capacity to meet daily coverage as usage grows. See [monitoring setup](docs/monitoring-setup.md).
 
-The account also builds an ERC-20 permission inventory for saved wallets. It walks Robinhood Chain Approval logs from the beginning in checkpointed ranges, records token/spender pairs, and reads each pair's current `allowance` onchain. The workspace distinguishes active, unlimited, revoked and unavailable checks and shows backfill progress. This can take multiple worker runs for busy wallets. It does not cover offchain permits, NFT approvals or contracts that do not emit standard ERC-20 Approval events.
+The account builds ERC-20 and NFT permission inventories for saved wallets. It walks Robinhood Chain approval logs from the beginning in checkpointed ranges. ERC-20 token/spender pairs are checked against current `allowance`; ERC-721 per-token and ERC-721/1155 operator permissions are checked against their current contract state after ERC-165 interface verification. The workspace shows active, revoked, unverified and unlimited ERC-20 permissions alongside scan progress. A successful ERC-2612 `permit` emits the standard ERC-20 `Approval` event, so its current allowance is included. Unsubmitted offchain signatures, Permit2 and contracts using custom permission events or methods are outside these inventories. An empty result is not a safety verdict.
 
 ## $NOTTR token
 
